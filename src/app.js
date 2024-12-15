@@ -1,12 +1,11 @@
 const express = require('express');
-const dataRoutes = require('./routes/data.route');
+const dataRoutes = require('./routes/data.route'); // Existing route
+const userRoutes = require('./routes/user.route'); // New route
 
 const app = express();
-
-// Middleware
 app.use(express.json());
 
-// Routes
-app.use('/api/data', dataRoutes);
+app.use('/api/data', dataRoutes); // Existing route
+app.use('/api/users', userRoutes); // New route
 
 module.exports = app;
