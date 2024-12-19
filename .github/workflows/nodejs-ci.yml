@@ -1,75 +1,67 @@
 name: Node.js CI/CD
 
 on:
+  push:
+    branches: [ main ]   # Run on pushes to the "main" branch
   pull_request:
-    branches: 
-      - main  # Trigger only for pull requests targeting the "main" branch
+    branches: [ main ]   # Run on pull requests to the "main" branch
 
 jobs:
-  # Test Application Job
   test:
     name: Test Application
     runs-on: ubuntu-latest
-
+ 
     steps:
-      # Step 1: Checkout the code from the repository
+      # Step 1: Checkout the code
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Step 2: Set up Node.js (latest LTS version)
+      # Step 2: Set up Node.js
       - name: Set Up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '20.x'  # Latest LTS version
 
-      # Step 3: Install project dependencies
+      # Step 3: Install dependencies
       - name: Install Dependencies
         run: npm install
 
-      # Step 4: Run tests to validate the application
+      # Step 4: Run tests
       - name: Run Tests
         run: npm test
 
-  # Deploy Application Job (only runs if the PR is merged)
   deploy:
     name: Deploy to AWS Elastic Beanstalk
     runs-on: ubuntu-latest
-    needs: test  # Ensure this job runs only if the 'test' job passes
-    if: github.event.pull_request.merged == true  # Only deploy if the PR is merged
+    needs: test  # Run only if the 'test' job passes
 
     steps:
-      # Step 1: Checkout the code again for the deployment job
+      # Step 1: Checkout the code
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Step 2: Set up Node.js (same version as in the test job)
+      # Step 2: Set up Node.js
       - name: Set Up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
 
-      # Step 3: Install project dependencies (in case anything changed)
+      # Step 3: Install dependencies
       - name: Install Dependencies
         run: npm install
 
-      # Step 4: Create a deployment package (ZIP the app files)
+      # Step 4: Generate Deployment Package
       - name: Generate Deployment Package
         run: zip -r nodejs-app-build.zip .
 
-      # Step 5: Configure AWS credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: 'eu-west-2'  # Specify the region here
-
-      # Step 6: Deploy to AWS Elastic Beanstalk using the deployment package
+      # Step 5: Deploy to AWS Elastic Beanstalk
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v21
         with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           application_name: 'node-js'
           environment_name: 'node-js-dev-env'
           version_label: ${{ github.sha }}
-          region: 'eu-west-2'  # Ensure you specify the same region here
+          region: eu-west-2
           deployment_package: nodejs-app-build.zip
