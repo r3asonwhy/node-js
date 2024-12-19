@@ -1,0 +1,44 @@
+name: Node.js CI - Deploy
+
+on:
+  workflow_run:
+    workflows: ["Node.js CI - Test"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    name: Deploy to AWS Elastic Beanstalk
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}  # Deploy only if tests pass
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Node.js
+      - name: Set Up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      # Step 3: Install dependencies
+      - name: Install Dependencies
+        run: npm install
+
+      # Step 4: Generate Deployment Package
+      - name: Generate Deployment Package
+        run: zip -r nodejs-app-build.zip .
+
+      # Step 5: Deploy to Elastic Beanstalk
+      - name: Deploy to Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v21
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: 'node-js'
+          environment_name: 'node-js-dev-env'
+          version_label: ${{ github.sha }}
+          region: eu-west-2
+          deployment_package: nodejs-app-build.zip
