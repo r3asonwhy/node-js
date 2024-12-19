@@ -35,7 +35,7 @@ jobs:
     name: Deploy to AWS Elastic Beanstalk
     runs-on: ubuntu-latest
     needs: test  # Ensure this job runs only if the 'test' job passes
-    if: github.ref == 'refs/heads/main'
+    if: github.event.pull_request.merged == true  # Only deploy if the PR is merged
 
     steps:
       # Step 1: Checkout the code again for the deployment job
@@ -56,14 +56,20 @@ jobs:
       - name: Generate Deployment Package
         run: zip -r nodejs-app-build.zip .
 
-      # Step 5: Deploy to AWS Elastic Beanstalk using the deployment package
+      # Step 5: Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: 'eu-west-2'  # Specify the region here
+
+      # Step 6: Deploy to AWS Elastic Beanstalk using the deployment package
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v21
         with:
-          aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}  # Set AWS Access Key in GitHub Secrets
-          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}  # Set AWS Secret Key in GitHub Secrets
-          application_name: 'node-js'  # The name of your Elastic Beanstalk application
-          environment_name: 'node-js-dev-env'  # The environment name in Elastic Beanstalk
-          version_label: ${{ github.sha }}  # Use the commit SHA as the version label
-          region: 'eu-west-2'  # Specify the AWS region
-          deployment_package: nodejs-app-build.zip  # The generated ZIP file for deployment
+          application_name: 'node-js'
+          environment_name: 'node-js-dev-env'
+          version_label: ${{ github.sha }}
+          region: 'eu-west-2'  # Ensure you specify the same region here
+          deployment_package: nodejs-app-build.zip
